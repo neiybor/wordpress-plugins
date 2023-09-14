@@ -1,2 +1,3 @@
 build:
-	zip "${CURDIR}.zip" *.php 
+	rm "${CURDIR}.zip" || true
+	zip -r "${CURDIR}.zip" . -x makefile
