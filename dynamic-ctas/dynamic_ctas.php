@@ -6,8 +6,96 @@
 * Author: Brayden Gibbons
 */
 define('NBRDCTA_PLUGIN_PATH', plugin_dir_path(__FILE__));
-include(NBRDCTA_PLUGIN_PATH . 'includes/landing_page_configs.php');
 include(NBRDCTA_PLUGIN_PATH . 'includes/search_widget.php');
+
+function nbrdcta_add_settings_page()
+{
+  if (!current_user_can('manage_options')) {
+    return;
+  }
+  add_menu_page('Neighbor Dynamic CTAs Settings', 'Neighbor CTAs', 'manage_options', 'nbrdcta-settings', 'nbrdcta_render_plugin_settings_page');
+}
+add_action('admin_menu', 'nbrdcta_add_settings_page');
+
+
+/*
+* Render the plugin settings interface
+*/
+function nbrdcta_render_plugin_settings_page()
+{
+?>
+  <h1>Neighbor CTA Plugin Settings</h1>
+  <form action="options.php" method="post">
+    <?php
+    settings_fields('nbrdcta_plugin');
+    do_settings_sections('nbrdcta_plugin');
+    ?>
+    <input name="submit" class="button button-primary" type="submit" value="<?php esc_attr_e('Save'); ?>" />
+  </form>
+<?php
+}
+
+/*
+* Set up the settings section and fields
+*/
+function nbrdcta_register_settings()
+{
+  $settings_name = 'nbrdcta_plugin';
+  $section_id = "nbrdcta_section_categories";
+  register_setting($settings_name, $settings_name);
+  add_settings_section($section_id, "Category CTAs", 'nbrdcta_settings_section_callback', $settings_name);
+
+  $categories = get_categories();
+  if (count($categories)) {
+    foreach ($categories as $category) {
+      $category_name = $category->name;
+      $underscored_category_name = str_replace(' ', '_', $category->name);
+      add_settings_field("nbrdcta_settings_field_$category_name", $category_name, nbrdcta_settings_field_callback($settings_name, $underscored_category_name), $settings_name, $section_id);
+    }
+  }
+}
+add_action('admin_init', 'nbrdcta_register_settings');
+
+function nbrdcta_settings_section_callback()
+{
+}
+
+/*
+* Render the inputs for the settings fields
+*/
+function nbrdcta_settings_field_callback($settings_name, $category_name)
+{
+  $category_id = "nbrdcta_$category_name";
+  $all_options = get_option($settings_name);
+  $category_options = array();
+  if (is_array($all_options)) {
+    $category_options = $all_options[$category_id];
+  }
+  return function () use ($settings_name, $category_options, $category_id) {
+    echo "<div style='width:100%;display:flex;flex-direction:row;justify-content:space-between'>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_sticky_header''>Sticky Header</label>
+        <textarea rows='5' id='" . "$category_id" . "_field_sticky_header' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[sticky_header]' type='text' >" . esc_attr($category_options['sticky_header'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_in_post''>In Post</label>
+        <textarea rows='5' id='" . "$category_id" . "_field_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[in_post]' type='text' >" . esc_attr($category_options['in_post'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_article_end''>Article End</label>
+        <textarea rows='5' id='" . "$category_id" . "_field_article_end' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[article_end]' type='text' >" . esc_attr($category_options['article_end'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_above_footer''>Above Footer</label>
+        <textarea rows='5' id='" . "$category_id" . "_field_above_footer' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[above_footer]' type='text' >" . esc_attr($category_options['above_footer'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_search_widget''>Search Widget</label>
+        <textarea rows='5' id='" . "$category_id" . "_field_search_widget' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[search_widget]' type='text' >" . esc_attr($category_options['search_widget'] ?? "") . "</textarea>
+      </div>
+    </div>";
+  };
+}
 
 /*
 * Add all actions that trigger based on the theme specific actions
@@ -28,14 +116,30 @@ add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
 */
 function nbrdcta_handle_cta_body($content)
 {
+  $settings_name = 'nbrdcta_plugin';
   $num_headings = 2;
+
   $post_categories = get_the_category();
   if (count($post_categories) == 0) {
-    return;
+    return $content;
   }
   $post_category = $post_categories[0]->name;
   if (empty($post_category)) {
-    return;
+    return $content;
+  }
+
+  $category_id = "nbrdcta_$post_category";
+  $all_options = get_option($settings_name);
+  $category_options = array();
+  if (is_array($all_options)) {
+    $category_options = $all_options[$category_id];
+  }
+  if (!array_key_exists('in_post', $category_options)) {
+    return $content;
+  }
+  $insert_html = $category_options['in_post'];
+  if (!$insert_html) {
+    return $content;
   }
 
   $html = mb_convert_encoding($content, 'HTML-ENTITIES', "UTF-8");
@@ -43,20 +147,7 @@ function nbrdcta_handle_cta_body($content)
   $dom->loadHTML($html);
 
   $addition_doc = new DOMDocument;
-  $storage_type = nbrdcta_Landing_Configs::get_category_storage_type($post_category);
-  $title = nbrdcta_Landing_Configs::get_type_title($storage_type);
-  $dlp_title = nbrdcta_Landing_Configs::get_type_title_dlp($storage_type);
-  $addition_doc->loadHTML(<<<EOD
-    <div style="width:100%;color: white;display:flex;flex-direction:row;justify-content:space-between;border-radius:24px;overflow:hidden;box-shadow:0 6px 2px -2px darkgray;background:linear-gradient(90deg, rgba(112,210,255,1) 14%, rgba(34,113,233,1) 84%, rgba(0,212,255,1) 100%);">
-      <div style="display:flex;flex-direction:column;width:100%;align-items:center;justify-content:center">
-        <p style="text-align:center;font-size:x-large;font-weight:600;letter-spacing:.05em;">Search for $title on Neighbor</p>
-        <a href="https://www.neighbor.com/$dlp_title">
-          <button style="background-color:white;color:black;box-shadow:0 1px 2px 0 rgba(0, 0, 0, 0.16);border:1px solid #EBECF0;">Find Storage</button>
-        </a>
-      </div>
-      <img src="https://d9lvjui2ux1xa.cloudfront.net/img/home-screen/webp/san-francisco-300-80.webp" class="pk-pin-it-ready lazyautosizes pk-lazyloaded" data-pk-sizes="auto" data-pk-src="https://d9lvjui2ux1xa.cloudfront.net/img/home-screen/webp/san-francisco-300-80.webp" sizes="null">
-    </div>
-  EOD);
+  $addition_doc->loadHTML($insert_html);
 
   $xpath = new DOMXpath($dom);
   $headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
@@ -84,16 +175,23 @@ function nbrdcta_handle_cta_content_end()
   if (empty($post_category)) {
     return;
   }
-  $storage_type = nbrdcta_Landing_Configs::get_category_storage_type($post_category);
-  $title = nbrdcta_Landing_Configs::get_type_title_upper($storage_type);
-  $output = <<<EOD
-    <h3 style="margin-top:64px">Want to Learn More About $title?</h3>
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore 
-    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
-    ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-  EOD;
-  echo $output;
+
+  $settings_name = 'nbrdcta_plugin';
+  $settings_key = "article_end";
+  $category_id = "nbrdcta_$post_category";
+  $all_options = get_option($settings_name);
+  $category_options = array();
+  if (is_array($all_options)) {
+    $category_options = $all_options[$category_id];
+  }
+  if (!array_key_exists($settings_key, $category_options)) {
+    return;
+  }
+  $insert_html = $category_options[$settings_key];
+  if (!$insert_html) {
+    return;
+  }
+  echo $insert_html;
 }
 
 /*
@@ -109,20 +207,23 @@ function nbrdcta_handle_cta_pre_footer()
   if (empty($post_category)) {
     return;
   }
-  $storage_type = nbrdcta_Landing_Configs::get_category_storage_type($post_category);
-  $storage_text = nbrdcta_Landing_Configs::get_type_title($storage_type);
-  $output = <<<EOD
-    <div style="background-color:gainsboro;display:flex;flex-direction:row;justify-content:space-between;margin:10px">
-      <div style="display:flex;flex-direction:column;width:100%;align-items:center;justify-content:center">
-        <p style="text-align:center">Search for $storage_text on Neighbor</p>
-        <a href="https://www.neighbor.com/$storage_type-near-me">
-          <button>Find Storage</button>
-        </a>
-      </div>
-      <img src="https://d9lvjui2ux1xa.cloudfront.net/img/home-screen/webp/san-francisco-300-80.webp"/>
-    </div>
-  EOD;
-  echo $output;
+
+  $settings_name = 'nbrdcta_plugin';
+  $settings_key = "above_footer";
+  $category_id = "nbrdcta_$post_category";
+  $all_options = get_option($settings_name);
+  $category_options = array();
+  if (is_array($all_options)) {
+    $category_options = $all_options[$category_id];
+  }
+  if (!array_key_exists($settings_key, $category_options)) {
+    return;
+  }
+  $insert_html = $category_options[$settings_key];
+  if (!$insert_html) {
+    return;
+  }
+  echo $insert_html;
 }
 
 /*
