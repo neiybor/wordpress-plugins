@@ -102,12 +102,11 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
 */
 function nbrdcta_add_handlers()
 {
-  // add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 1);
+  add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 1);
   add_filter('the_content', 'nbrdcta_handle_cta_body', 100);
   add_action('csco_entry_content_after', 'nbrdcta_handle_cta_content_end', 1);
   add_action('csco_footer_before', 'nbrdcta_handle_cta_pre_footer', 1);
 }
-
 // Priority for the child theme load is 99, set to 150 to execute after child theme is loaded
 add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
 
@@ -116,28 +115,9 @@ add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
 */
 function nbrdcta_handle_cta_body($content)
 {
-  $settings_name = 'nbrdcta_plugin';
+  $settings_key = 'in_post';
   $num_headings = 2;
-
-  $post_categories = get_the_category();
-  if (count($post_categories) == 0) {
-    return $content;
-  }
-  $post_category = $post_categories[0]->name;
-  if (empty($post_category)) {
-    return $content;
-  }
-
-  $category_id = "nbrdcta_$post_category";
-  $all_options = get_option($settings_name);
-  $category_options = array();
-  if (is_array($all_options)) {
-    $category_options = $all_options[$category_id];
-  }
-  if (!array_key_exists('in_post', $category_options)) {
-    return $content;
-  }
-  $insert_html = $category_options['in_post'];
+  $insert_html = nbrdcta_get_custom_html($settings_key);
   if (!$insert_html) {
     return $content;
   }
@@ -167,27 +147,8 @@ function nbrdcta_handle_cta_body($content)
 */
 function nbrdcta_handle_cta_content_end()
 {
-  $post_categories = get_the_category();
-  if (count($post_categories) == 0) {
-    return;
-  }
-  $post_category = $post_categories[0]->name;
-  if (empty($post_category)) {
-    return;
-  }
-
-  $settings_name = 'nbrdcta_plugin';
   $settings_key = "article_end";
-  $category_id = "nbrdcta_$post_category";
-  $all_options = get_option($settings_name);
-  $category_options = array();
-  if (is_array($all_options)) {
-    $category_options = $all_options[$category_id];
-  }
-  if (!array_key_exists($settings_key, $category_options)) {
-    return;
-  }
-  $insert_html = $category_options[$settings_key];
+  $insert_html = nbrdcta_get_custom_html($settings_key);
   if (!$insert_html) {
     return;
   }
@@ -199,27 +160,8 @@ function nbrdcta_handle_cta_content_end()
 */
 function nbrdcta_handle_cta_pre_footer()
 {
-  $post_categories = get_the_category();
-  if (count($post_categories) == 0) {
-    return;
-  }
-  $post_category = $post_categories[0]->name;
-  if (empty($post_category)) {
-    return;
-  }
-
-  $settings_name = 'nbrdcta_plugin';
   $settings_key = "above_footer";
-  $category_id = "nbrdcta_$post_category";
-  $all_options = get_option($settings_name);
-  $category_options = array();
-  if (is_array($all_options)) {
-    $category_options = $all_options[$category_id];
-  }
-  if (!array_key_exists($settings_key, $category_options)) {
-    return;
-  }
-  $insert_html = $category_options[$settings_key];
+  $insert_html = nbrdcta_get_custom_html($settings_key);
   if (!$insert_html) {
     return;
   }
@@ -229,27 +171,53 @@ function nbrdcta_handle_cta_pre_footer()
 /*
 * Handle adding a sticky widget to the top of the page (maybe)
 */
-// function nbrdcta_handle_sticky_widget()
-// {
-//   $post_categories = get_the_category();
-//   if (count($post_categories) == 0) {
-//     return;
-//   }
-//   $post_category = $post_categories[0]->name;
-//   if (empty($post_category)) {
-//     return;
-//   }
-//   $storage_type = nbrdcta_Landing_Configs::get_category_storage_type($post_category);
-//   $storage_text = nbrdcta_Landing_Configs::get_type_title_upper($storage_type);
-//   $output = <<<EOD
-//   <div style="position:sticky;top:var(--cs-header-initial-height);width:100%;background-color:gainsboro">
-//     <div style="display:flex;flex-direction:row;width:100%;align-items:space-around;justify-content:center">
-//       <p style="text-align:center">Search for $storage_text on Neighbor</p>
-//       <a href="https://www.neighbor.com/$storage_type-near-me">
-//         <button>Find Storage</button>
-//       </a>
-//     </div>
-//   </div>
-//   EOD;
-//   echo $output;
-// }
+function nbrdcta_handle_sticky_widget()
+{
+  $settings_key = "sticky_header";
+  $insert_html = nbrdcta_get_custom_html($settings_key);
+  if (!$insert_html) {
+    return;
+  }
+
+  $css = "";
+  if (is_admin_bar_showing()) {
+    $css .= "top:32px;";
+  }
+
+  $output = <<<EOD
+  <div style="position:sticky;top:0;width:100%;z-index:5;height:var(--cs-header-height);background-color:white;$css">
+    $insert_html
+  </div>
+  EOD;
+  echo $output;
+}
+
+/*
+* Handle getting cta options from settings
+*/
+function nbrdcta_get_custom_html($key)
+{
+  $settings_name = 'nbrdcta_plugin';
+  $post_categories = get_the_category();
+  if (count($post_categories) == 0) {
+    return "";
+  }
+  $post_category = $post_categories[0]->name;
+  if (empty($post_category)) {
+    return "";
+  }
+  $category_id = "nbrdcta_$post_category";
+  $all_options = get_option($settings_name);
+  $category_options = array();
+  if (is_array($all_options) && array_key_exists($category_id, $all_options)) {
+    $category_options = $all_options[$category_id];
+  }
+  if (!array_key_exists($key, $category_options)) {
+    return "";
+  }
+  $insert_html = $category_options[$key];
+  if (!$insert_html) {
+    return "";
+  }
+  return $insert_html;
+}
