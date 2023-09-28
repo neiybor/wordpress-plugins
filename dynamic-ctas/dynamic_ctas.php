@@ -75,23 +75,23 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
     echo "<div style='width:100%;display:flex;flex-direction:row;justify-content:space-between'>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_sticky_header''>Sticky Header</label>
-        <textarea rows='5' id='" . "$category_id" . "_field_sticky_header' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[sticky_header]' type='text' >" . esc_attr($category_options['sticky_header'] ?? "") . "</textarea>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_sticky_header' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[sticky_header]' type='text' >" . esc_attr($category_options['sticky_header'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_in_post''>In Post</label>
-        <textarea rows='5' id='" . "$category_id" . "_field_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[in_post]' type='text' >" . esc_attr($category_options['in_post'] ?? "") . "</textarea>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[in_post]' type='text' >" . esc_attr($category_options['in_post'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_article_end''>Article End</label>
-        <textarea rows='5' id='" . "$category_id" . "_field_article_end' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[article_end]' type='text' >" . esc_attr($category_options['article_end'] ?? "") . "</textarea>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_article_end' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[article_end]' type='text' >" . esc_attr($category_options['article_end'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_above_footer''>Above Footer</label>
-        <textarea rows='5' id='" . "$category_id" . "_field_above_footer' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[above_footer]' type='text' >" . esc_attr($category_options['above_footer'] ?? "") . "</textarea>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_above_footer' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[above_footer]' type='text' >" . esc_attr($category_options['above_footer'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_search_widget''>Search Widget</label>
-        <textarea rows='5' id='" . "$category_id" . "_field_search_widget' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[search_widget]' type='text' >" . esc_attr($category_options['search_widget'] ?? "") . "</textarea>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_search_widget' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[search_widget]' type='text' >" . esc_attr($category_options['search_widget'] ?? "") . "</textarea>
       </div>
     </div>";
   };
@@ -121,13 +121,26 @@ function nbrdcta_handle_cta_body($content)
   if (!$insert_html) {
     return $content;
   }
+  $insert_html = <<<EOD
+    <div id="in-post">
+      $insert_html
+    </div>
+  EOD;
 
   $html = mb_convert_encoding($content, 'HTML-ENTITIES', "UTF-8");
   $dom = new DOMDocument;
-  $dom->loadHTML($html);
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$dom->loadHTML($html);
+  if (!$succeeded) {
+    return $content;
+  }
 
   $addition_doc = new DOMDocument;
-  $addition_doc->loadHTML($insert_html);
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$addition_doc->loadHTML($insert_html);
+  if (!$succeeded) {
+    return $content;
+  }
 
   $xpath = new DOMXpath($dom);
   $headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
@@ -152,7 +165,12 @@ function nbrdcta_handle_cta_content_end()
   if (!$insert_html) {
     return;
   }
-  echo $insert_html;
+  $container = <<<EOD
+    <div id="article-end">
+      $insert_html
+    </div>
+  EOD;
+  echo $container;
 }
 
 /*
@@ -165,7 +183,12 @@ function nbrdcta_handle_cta_pre_footer()
   if (!$insert_html) {
     return;
   }
-  echo $insert_html;
+  $container = <<<EOD
+    <div id="above-footer">
+      $insert_html
+    </div>
+  EOD;
+  echo $container;
 }
 
 /*
@@ -185,9 +208,9 @@ function nbrdcta_handle_sticky_widget()
   }
 
   $output = <<<EOD
-  <div style="position:sticky;top:0;width:100%;z-index:5;height:var(--cs-header-height);background-color:white;$css">
-    $insert_html
-  </div>
+    <div id="sticky-header" style="position:sticky;top:0;width:100%;z-index:5;height:var(--cs-header-height);background-color:white;$css">
+      $insert_html
+    </div>
   EOD;
   echo $output;
 }

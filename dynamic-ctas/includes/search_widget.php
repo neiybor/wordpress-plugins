@@ -33,25 +33,51 @@ class nbrdcta_search_widget extends WP_Widget
       return;
     }
 
-    $settings_name = 'nbrdcta_plugin';
     $settings_key = "search_widget";
-    $category_id = "nbrdcta_$post_category";
-    $all_options = get_option($settings_name);
-    $category_options = array();
-    if (is_array($all_options)) {
-      $category_options = $all_options[$category_id];
-    }
-    if (!array_key_exists($settings_key, $category_options)) {
-      return;
-    }
-    $insert_html = $category_options[$settings_key];
+    $insert_html = nbrdcta_search_widget::nbrdcta_get_custom_html($settings_key);
     if (!$insert_html) {
       return;
     }
-    echo $insert_html;
+    $content = <<<EOD
+      <div id="search-widget">
+        $insert_html
+      </div>
+    EOD;
+    echo $content;
 
     echo $args['after_widget'];
   }
+
+  /*
+  * Handle getting cta options from settings
+  */
+  public function nbrdcta_get_custom_html($key)
+  {
+    $settings_name = 'nbrdcta_plugin';
+    $post_categories = get_the_category();
+    if (count($post_categories) == 0) {
+      return "";
+    }
+    $post_category = $post_categories[0]->name;
+    if (empty($post_category)) {
+      return "";
+    }
+    $category_id = "nbrdcta_$post_category";
+    $all_options = get_option($settings_name);
+    $category_options = array();
+    if (is_array($all_options) && array_key_exists($category_id, $all_options)) {
+      $category_options = $all_options[$category_id];
+    }
+    if (!array_key_exists($key, $category_options)) {
+      return "";
+    }
+    $insert_html = $category_options[$key];
+    if (!$insert_html) {
+      return "";
+    }
+    return $insert_html;
+  }
+
 
   // public function widget($args, $instance)
   // {
