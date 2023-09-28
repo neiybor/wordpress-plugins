@@ -62,7 +62,8 @@ class nbrdcta_search_widget extends WP_Widget
     if (empty($post_category)) {
       return "";
     }
-    $category_id = "nbrdcta_$post_category";
+    $underscored_category_name = str_replace(' ', '_', $post_category);
+    $category_id = "nbrdcta_$underscored_category_name";
     $all_options = get_option($settings_name);
     $category_options = array();
     if (is_array($all_options) && array_key_exists($category_id, $all_options)) {

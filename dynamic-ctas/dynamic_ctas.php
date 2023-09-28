@@ -102,10 +102,10 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
 */
 function nbrdcta_add_handlers()
 {
-  add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 1);
+  add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 100);
   add_filter('the_content', 'nbrdcta_handle_cta_body', 100);
-  add_action('csco_entry_content_after', 'nbrdcta_handle_cta_content_end', 1);
-  add_action('csco_footer_before', 'nbrdcta_handle_cta_pre_footer', 1);
+  add_action('csco_entry_content_after', 'nbrdcta_handle_cta_content_end', 100);
+  add_action('csco_footer_before', 'nbrdcta_handle_cta_pre_footer', 100);
 }
 // Priority for the child theme load is 99, set to 150 to execute after child theme is loaded
 add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
@@ -229,7 +229,8 @@ function nbrdcta_get_custom_html($key)
   if (empty($post_category)) {
     return "";
   }
-  $category_id = "nbrdcta_$post_category";
+  $underscored_category_name = str_replace(' ', '_', $post_category);
+  $category_id = "nbrdcta_$underscored_category_name";
   $all_options = get_option($settings_name);
   $category_options = array();
   if (is_array($all_options) && array_key_exists($category_id, $all_options)) {
