@@ -69,7 +69,7 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
   $all_options = get_option($settings_name);
   $category_options = array();
   if (is_array($all_options)) {
-    $category_options = $all_options[$category_id];
+    $category_options = $all_options[$category_id] ?? array();
   }
   return function () use ($settings_name, $category_options, $category_id) {
     echo "<div style='width:100%;display:flex;flex-direction:row;justify-content:space-between'>
