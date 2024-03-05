@@ -78,12 +78,16 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_sticky_header' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[sticky_header]' type='text' >" . esc_attr($category_options['sticky_header'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_in_post''>In Post</label>
+        <label for='" . "$category_id" . "_field_in_post''>1st In Post</label>
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[in_post]' type='text' >" . esc_attr($category_options['in_post'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_article_end''>Article End</label>
-        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_article_end' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[article_end]' type='text' >" . esc_attr($category_options['article_end'] ?? "") . "</textarea>
+        <label for='" . "$category_id" . "_field_2_in_post''>2nd In Post</label>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_2_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[2_in_post]' type='text' >" . esc_attr($category_options['2_in_post'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_3_in_post''>3rd In Post</label>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_3_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[3_in_post]' type='text' >" . esc_attr($category_options['3_in_post'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
         <label for='" . "$category_id" . "_field_above_footer''>Above Footer</label>
@@ -103,7 +107,9 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
 function nbrdcta_add_handlers()
 {
   add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 100);
-  add_filter('the_content', 'nbrdcta_handle_cta_body', 100);
+  /*add_filter('the_content', 'nbrdcta_handle_cta_body', 100);
+  add_filter('the_content', 'nbrdcta_handle_2_cta_body', 100);
+  add_filter('the_content', 'nbrdcta_handle_3_cta_body', 100);*/
   add_action('csco_entry_content_after', 'nbrdcta_handle_cta_content_end', 100);
   add_action('csco_footer_before', 'nbrdcta_handle_cta_pre_footer', 100);
 }
@@ -116,14 +122,14 @@ add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
 function nbrdcta_handle_cta_body($content)
 {
   $settings_key = 'in_post';
-  $num_headings = 2;
-  $insert_html = nbrdcta_get_custom_html($settings_key);
-  if (!$insert_html) {
+  $num_headings = 4;
+  $insert_html_1 = nbrdcta_get_custom_html($settings_key);
+  if (!$insert_html_1) {
     return $content;
   }
-  $insert_html = <<<EOD
+  $insert_html_1 = <<<EOD
     <div id="in-post">
-      $insert_html
+      $insert_html_1
     </div>
   EOD;
 
@@ -137,20 +143,136 @@ function nbrdcta_handle_cta_body($content)
 
   $addition_doc = new DOMDocument;
   // The @ sign supresses warnings we are seeing. Not a permanent fix
-  $succeeded = @$addition_doc->loadHTML($insert_html);
+  $succeeded = @$addition_doc->loadHTML($insert_html_1);
   if (!$succeeded) {
     return $content;
   }
 
   $xpath = new DOMXpath($dom);
-  $headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
+  //$headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
+  $headings = $xpath->query('//h2');
+  if ($headings->length <= $num_headings) {
+    $headings = $xpath->query('//h2 | //h3');
+  }
+  
+  echo $headings->length;
+  echo $first_insert  = intval(( $headings->length * 25) /  100);
+  $second_insert = intval(( $headings->length * 55) /  100);
+  $third_insert  = intval(( $headings->length * 85) /  100);
+
+  
+
   if ($headings->length >= $num_headings) {
-    $element = $headings->item($num_headings);
+    $element = $headings->item($first_insert);
     $element->parentNode->insertBefore(
       $dom->importNode($addition_doc->documentElement, true),
       $element
     );
   }
+
+  return $dom->saveHTML();
+}
+
+/*
+* Handle adding CTA to post body
+*/
+function nbrdcta_handle_2_cta_body($content)
+{
+  $settings_key = '2_in_post';
+  $num_headings = 4;
+  $insert_html_1 = nbrdcta_get_custom_html($settings_key);
+  if (!$insert_html_1) {
+    return $content;
+  }
+  $insert_html_1 = <<<EOD
+    <div id="in-post">
+      $insert_html_1
+    </div>
+  EOD;
+
+  $html = mb_convert_encoding($content, 'HTML-ENTITIES', "UTF-8");
+  $dom = new DOMDocument;
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$dom->loadHTML($html);
+  if (!$succeeded) {
+    return $content;
+  }
+
+  $addition_doc = new DOMDocument;
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$addition_doc->loadHTML($insert_html_1);
+  if (!$succeeded) {
+    return $content;
+  }
+
+  $xpath = new DOMXpath($dom);
+  //$headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
+  $headings = $xpath->query('//h2');
+  if ($headings->length <= $num_headings) {
+    $headings = $xpath->query('//h2 | //h3');
+  }
+  
+  $first_insert  = intval(( $headings->length * 25) /  100);
+  $second_insert = intval(( $headings->length * 55) /  100);
+  $third_insert  = intval(( $headings->length * 85) /  100);
+
+  $element = $headings->item($second_insert);
+  $element->parentNode->insertBefore(
+    $dom->importNode($addition_doc->documentElement, true),
+    $element
+  );
+
+  return $dom->saveHTML();
+}
+
+/*
+* Handle adding CTA to post body
+*/
+function nbrdcta_handle_3_cta_body($content)
+{
+  $settings_key = '3_in_post';
+  $num_headings = 4;
+  $insert_html_1 = nbrdcta_get_custom_html($settings_key);
+  if (!$insert_html_1) {
+    return $content;
+  }
+  $insert_html_1 = <<<EOD
+    <div id="in-post">
+      $insert_html_1
+    </div>
+  EOD;
+
+  $html = mb_convert_encoding($content, 'HTML-ENTITIES', "UTF-8");
+  $dom = new DOMDocument;
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$dom->loadHTML($html);
+  if (!$succeeded) {
+    return $content;
+  }
+
+  $addition_doc = new DOMDocument;
+  // The @ sign supresses warnings we are seeing. Not a permanent fix
+  $succeeded = @$addition_doc->loadHTML($insert_html_1);
+  if (!$succeeded) {
+    return $content;
+  }
+
+  $xpath = new DOMXpath($dom);
+  //$headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
+  $headings = $xpath->query('//h2');
+  if ($headings->length <= $num_headings) {
+    $headings = $xpath->query('//h2 | //h3');
+  }
+  
+  $first_insert  = intval(( $headings->length * 25) /  100);
+  $second_insert = intval(( $headings->length * 55) /  100);
+  $third_insert  = intval(( $headings->length * 85) /  100);
+
+  $element = $headings->item($third_insert);
+  $element->parentNode->insertBefore(
+    $dom->importNode($addition_doc->documentElement, true),
+    $element
+  );
 
   return $dom->saveHTML();
 }
