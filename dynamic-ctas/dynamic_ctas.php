@@ -74,23 +74,27 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
   return function () use ($settings_name, $category_options, $category_id) {
     echo "<div style='width:100%;display:flex;flex-direction:row;justify-content:space-between'>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_sticky_header''>Sticky Header</label>
+        <label for='" . "$category_id" . "_field_sticky_header'>Sticky Header</label>
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_sticky_header' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[sticky_header]' type='text' >" . esc_attr($category_options['sticky_header'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_in_post''>In Post</label>
+        <label for='" . "$category_id" . "_field_in_post'>1st In Post</label>
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[in_post]' type='text' >" . esc_attr($category_options['in_post'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_article_end''>Article End</label>
-        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_article_end' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[article_end]' type='text' >" . esc_attr($category_options['article_end'] ?? "") . "</textarea>
+        <label for='" . "$category_id" . "_field_2_in_post'>2nd In Post</label>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_2_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[2_in_post]' type='text' >" . esc_attr($category_options['2_in_post'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_above_footer''>Above Footer</label>
+        <label for='" . "$category_id" . "_field_3_in_post'>3rd In Post</label>
+        <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_3_in_post' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[3_in_post]' type='text' >" . esc_attr($category_options['3_in_post'] ?? "") . "</textarea>
+      </div>
+      <div style='display:flex;flex-direction:column'>
+        <label for='" . "$category_id" . "_field_above_footer'>Above Footer</label>
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_above_footer' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[above_footer]' type='text' >" . esc_attr($category_options['above_footer'] ?? "") . "</textarea>
       </div>
       <div style='display:flex;flex-direction:column'>
-        <label for='" . "$category_id" . "_field_search_widget''>Search Widget</label>
+        <label for='" . "$category_id" . "_field_search_widget'>Search Widget</label>
         <textarea style='resize:both' rows='5' id='" . "$category_id" . "_field_search_widget' name='" . "$settings_name" . "[" . "$category_id" . "]" . "[search_widget]' type='text' >" . esc_attr($category_options['search_widget'] ?? "") . "</textarea>
       </div>
     </div>";
@@ -103,26 +107,54 @@ function nbrdcta_settings_field_callback($settings_name, $category_name)
 function nbrdcta_add_handlers()
 {
   add_action('csco_header_after', 'nbrdcta_handle_sticky_widget', 100);
-  add_filter('the_content', 'nbrdcta_handle_cta_body', 100);
-  add_action('csco_entry_content_after', 'nbrdcta_handle_cta_content_end', 100);
+  add_filter('the_content', 'nbrdcta_handle_1_cta_body', 100);
+  add_filter('the_content', 'nbrdcta_handle_2_cta_body', 100);
+  add_filter('the_content', 'nbrdcta_handle_3_cta_body', 100);
   add_action('csco_footer_before', 'nbrdcta_handle_cta_pre_footer', 100);
 }
 // Priority for the child theme load is 99, set to 150 to execute after child theme is loaded
 add_action('after_setup_theme', 'nbrdcta_add_handlers', 150);
 
+/**
+ * Handle adding 1st CTA to post body
+ */
+function nbrdcta_handle_1_cta_body($content)
+{
+  return nbrdcta_handle_cta_body($content, 'in_post', 0);
+}
+
+/**
+ * Handle adding 2nd CTA to post body
+ */
+function nbrdcta_handle_2_cta_body($content)
+{
+  return nbrdcta_handle_cta_body($content, '2_in_post', 1);
+}
+
+/**
+ * Handle adding 3rd CTA to post body
+ */
+function nbrdcta_handle_3_cta_body($content)
+{
+  return nbrdcta_handle_cta_body($content, '3_in_post', 2);
+}
+
 /*
 * Handle adding CTA to post body
 */
-function nbrdcta_handle_cta_body($content)
+function nbrdcta_handle_cta_body($content, $settings_key, $in_post_index)
 {
-  $settings_key = 'in_post';
-  $num_headings = 2;
+  $min_num_headings_for_all_three = 6;
+  $min_num_headings = 3;
+  // where to insert the 3 CTAs in the post
+  $insert_percentages = [25, 55, 85];
+
   $insert_html = nbrdcta_get_custom_html($settings_key);
   if (!$insert_html) {
     return $content;
   }
   $insert_html = <<<EOD
-    <div id="in-post">
+    <div id="$settings_key">
       $insert_html
     </div>
   EOD;
@@ -143,34 +175,29 @@ function nbrdcta_handle_cta_body($content)
   }
 
   $xpath = new DOMXpath($dom);
-  $headings = $xpath->query('//h1 | //h2 | //h3 | //h4');
-  if ($headings->length >= $num_headings) {
-    $element = $headings->item($num_headings);
-    $element->parentNode->insertBefore(
-      $dom->importNode($addition_doc->documentElement, true),
-      $element
-    );
+  $headings = $xpath->query('//h2');
+  if ($headings->length < $min_num_headings_for_all_three) {
+    $headings = $xpath->query('//h2 | //h3');
   }
+
+  // If there are not enough headings at all, don't show any CTAs
+  if ($headings->length < $min_num_headings) {
+    return $content;
+  }
+
+  // If there are not enough headings for three, don't add the 1st CTA
+  if ($headings->length < $min_num_headings_for_all_three && $settings_key === 'in_post') {
+    return $content;
+  }
+
+  $heading_index = round($headings->length * $insert_percentages[$in_post_index] / 100) - 1;
+  $heading_element = $headings->item($heading_index);
+  $heading_element->parentNode->insertBefore(
+    $dom->importNode($addition_doc->documentElement, true),
+    $heading_element
+  );
 
   return $dom->saveHTML();
-}
-
-/*
-* Handle adding CTA to content end
-*/
-function nbrdcta_handle_cta_content_end()
-{
-  $settings_key = "article_end";
-  $insert_html = nbrdcta_get_custom_html($settings_key);
-  if (!$insert_html) {
-    return;
-  }
-  $container = <<<EOD
-    <div id="article-end">
-      $insert_html
-    </div>
-  EOD;
-  echo $container;
 }
 
 /*
