@@ -144,9 +144,10 @@ function nbrdcta_handle_3_cta_body($content)
 */
 function nbrdcta_handle_cta_body($content, $settings_key, $in_post_index)
 {
-  $min_num_headings_for_three = 6;
-  $min_num_headings_for_all = 3;
-  $percentages = [25, 55, 85];
+  $min_num_headings_for_all_three = 6;
+  $min_num_headings = 3;
+  // where to insert the 3 CTAs in the post
+  $insert_percentages = [25, 55, 85];
 
   $insert_html = nbrdcta_get_custom_html($settings_key);
   if (!$insert_html) {
@@ -175,21 +176,21 @@ function nbrdcta_handle_cta_body($content, $settings_key, $in_post_index)
 
   $xpath = new DOMXpath($dom);
   $headings = $xpath->query('//h2');
-  if ($headings->length < $min_num_headings_for_three) {
+  if ($headings->length < $min_num_headings_for_all_three) {
     $headings = $xpath->query('//h2 | //h3');
   }
 
-  // If there are not enough headings, don't show any CTAs
-  if ($headings->length < $min_num_headings_for_all) {
+  // If there are not enough headings at all, don't show any CTAs
+  if ($headings->length < $min_num_headings) {
     return $content;
   }
 
   // If there are not enough headings for three, don't add the 1st CTA
-  if ($headings->length < $min_num_headings_for_three && $settings_key === 'in_post') {
+  if ($headings->length < $min_num_headings_for_all_three && $settings_key === 'in_post') {
     return $content;
   }
 
-  $heading_index = round($headings->length * $percentages[$in_post_index] / 100) - 1;
+  $heading_index = round($headings->length * $insert_percentages[$in_post_index] / 100) - 1;
   $heading_element = $headings->item($heading_index);
   $heading_element->parentNode->insertBefore(
     $dom->importNode($addition_doc->documentElement, true),
