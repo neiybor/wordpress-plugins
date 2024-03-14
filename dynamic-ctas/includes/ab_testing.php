@@ -33,7 +33,7 @@ function nbrdcta_get_test_assignments()
     $html = nbrdcta_get_custom_html($settings_key);
     if ($html) {
       $test = nbrdcta_get_test_name_and_arm($html);
-      if ($test) {
+      if ($test && !$test['fallback_to_control']) {
         $test_name = $test['test_name'];
         $arm = $test['arm'];
         $full_test_name = $test['full_test_name'];
@@ -102,8 +102,10 @@ function nbrdcta_get_test_name_and_arm($html)
       return false;
     }
 
-    $arm = nbrdcta_get_test_arm_from_arm_names($test_name, $arm_names);
-    return array("test_name" => $test_name, "arm" => $arm, "full_test_name" => $class);
+    $arm_info = nbrdcta_get_test_arm_from_arm_names($test_name, $arm_names);
+    $arm = $arm_info['arm'];
+    $fallback_to_control = $arm_info['fallback_to_control'];
+    return array("test_name" => $test_name, "arm" => $arm, "full_test_name" => $class, "fallback_to_control" => $fallback_to_control);
   }
   return false;
 }
@@ -132,7 +134,7 @@ function nbrdcta_get_test_arm_from_arm_names($test_name, $arm_names)
 {
     global $nbrdcta_anonymous_id;
     if (empty($nbrdcta_anonymous_id)) {
-        return $arm_names[0];
+        return array("arm" => $arm_names[0], "fallback_to_control" => true);
     }
 
     $hashed_index = hexdec(hash('murmur3a', $test_name . "_" . $nbrdcta_anonymous_id));
@@ -160,7 +162,7 @@ function nbrdcta_get_test_arm_from_arm_names($test_name, $arm_names)
     });
 
     $assigned_arm = reset($matching_arms) ?: reset($normalized_weights);
-    return $assigned_arm[0];
+    return array("arm" => $assigned_arm[0], "fallback_to_control" => false);
 }
 
 /**
