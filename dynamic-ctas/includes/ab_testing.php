@@ -115,7 +115,7 @@ function nbrdcta_get_test_name_and_arm($html)
 /**
  * Handle determining if there's an ab test and return content for arm
  */
-function nbrdcta_get_test_arm_content($html)
+function nbrdcta_get_ab_test_content($html)
 {
   $test_assignment = nbrdcta_get_test_name_and_arm($html);
 
