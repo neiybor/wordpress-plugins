@@ -34,7 +34,8 @@ class nbrdcta_search_widget extends WP_Widget
     }
 
     $settings_key = "search_widget";
-    $insert_html = nbrdcta_search_widget::nbrdcta_get_custom_html($settings_key);
+    $custom_html = nbrdcta_search_widget::nbrdcta_get_custom_html($settings_key);
+    $insert_html = nbrdcta_get_ab_test_content($custom_html);
     if (!$insert_html) {
       return;
     }
