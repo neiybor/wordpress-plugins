@@ -69,10 +69,6 @@ function nbrdcta_set_local_storage_item($key, $value)
  */
 function nbrdcta_get_test_name_and_arm($html)
 {
-  global $nbrdcta_anonymous_id;
-  if (empty($nbrdcta_anonymous_id)) {
-    return false;
-  }
   if (empty($html)) {
     return false;
   }
