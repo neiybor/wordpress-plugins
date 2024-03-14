@@ -52,7 +52,7 @@ function nbrdcta_handle_cta_body($content, $settings_key, $in_post_index)
   $insert_percentages = [25, 55, 85];
 
   $custom_html = nbrdcta_get_custom_html($settings_key);
-  $insert_html = nbrdcta_get_ab_test_content($custom_html);
+  $insert_html = nbrdcta_get_test_arm_content($custom_html);
   if (!$insert_html) {
     return $content;
   }
@@ -110,7 +110,7 @@ function nbrdcta_handle_cta_pre_footer()
 {
   $settings_key = "above_footer";
   $custom_html = nbrdcta_get_custom_html($settings_key);
-  $insert_html = nbrdcta_get_ab_test_content($custom_html);
+  $insert_html = nbrdcta_get_test_arm_content($custom_html);
   if (!$insert_html) {
     return;
   }
@@ -129,7 +129,7 @@ function nbrdcta_handle_sticky_widget()
 {
   $settings_key = "sticky_header";
   $custom_html = nbrdcta_get_custom_html($settings_key);
-  $insert_html = nbrdcta_get_ab_test_content($custom_html);
+  $insert_html = nbrdcta_get_test_arm_content($custom_html);
   if (!$insert_html) {
     return;
   }
