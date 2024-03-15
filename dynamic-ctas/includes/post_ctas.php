@@ -26,6 +26,9 @@ function nbrdcta_handle_cta_body($content)
   $in_post_ctas = [['in_post', 25], ['2_in_post', 55], ['3_in_post', 85]];
 
   $html = mb_convert_encoding($content, 'HTML-ENTITIES', "UTF-8");
+  if (!$html) {
+    return $content;
+  }
   $dom = new DOMDocument;
   // The @ sign supresses warnings we are seeing. Not a permanent fix
   $succeeded = @$dom->loadHTML($html);
